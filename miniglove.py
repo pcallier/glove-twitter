@@ -3,6 +3,10 @@ import gzip
 import numpy as np
 
 class Glove:
+    """
+    Glove -- loads in GloVe pretrained models as provided on the Stanford NLP GloVe 
+    website. Does cosine similarity nearest neighbors.
+    """
     def __init__(self):
         self.wd_to_i = {}
         self.i_to_wd = {}
@@ -24,21 +28,25 @@ class Glove:
                 for i, glove_entry in enumerate(utfreader(glove_file)):
                     if i >= max_entries:
                         break
-                    glove_components = glove_entry.split(' ')
-                    self.wd_to_i[glove_components[0]] = i
-                    self.i_to_wd[i] = glove_components[0]
-                    self.v[i,:] = tuple(float(i) for i in glove_components[1:])
+                    self.split_and_store(glove_entry, i)
         else:
             with codecs.open(glove_path, "r", "utf-8") as glove_file:
                 for i, glove_entry in enumerate(glove_file):
                     if i >= max_entries:
+                        print "Stopping: ", i, max_entries
                         break
-                    glove_components = glove_entry.split(' ')
-                    self.wd_to_i[glove_components[0]] = i
-                    self.i_to_wd[i] = glove_components[0]
-                    self.v[i,:] = tuple(float(i) for i in glove_components[1:])
+                    self.split_and_store(glove_entry, i)
 
-    
+
+    def split_and_store(self, glove_entry, i):
+        glove_components = glove_entry.split(' ')
+        self.wd_to_i[glove_components[0]] = i
+        self.i_to_wd[i] = glove_components[0]
+        try:
+            self.v[i,:] = tuple(float(i) for i in glove_components[1:])
+        except (ValueError, IndexError) as e:
+            print "Bad entry", i, ", GloVe components: \"", glove_components, "\""
+
     def nearest_to_vec(self, vec, n=10):
         similarities = np.dot(self.v, vec) / (np.linalg.norm(self.v,axis=1) * 
                                                 np.linalg.norm(vec))
